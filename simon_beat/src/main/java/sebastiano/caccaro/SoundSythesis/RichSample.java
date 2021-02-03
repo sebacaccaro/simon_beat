@@ -12,9 +12,14 @@ public class RichSample {
   private int code;
   private String path;
 
-  public RichSample(String path) throws IOException {
+  public RichSample(String path) {
     this.path = path;
-    this.sample = SampleLoader.loadFloatSample(new File(path));
+    try {
+      this.sample = SampleLoader.loadFloatSample(new File(path));
+    } catch (IOException e) {
+      System.out.println("Could not load sample at path: " + path);
+      e.printStackTrace();
+    }
     // I'm assung filenames are in this format
     // Code_Sound Name.wav
     String[] pathSplitted = path.split("/");
