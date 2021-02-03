@@ -4,10 +4,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Insets;
-import java.awt.Shape;
 import java.awt.event.*;
 import java.awt.event.MouseAdapter;
-import java.awt.geom.RoundRectangle2D;
 import javax.swing.JButton;
 import javax.swing.border.LineBorder;
 
