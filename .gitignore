@@ -25,3 +25,6 @@ hs_err_pid*
 # Non used samples
 simon_beat/src/main/resources/temp/**
 simon_beat/target/**
+simon_beat/src/main/java/sebastiano/caccaro/CheckBoard.java
+.gitignore
+simon_beat/src/main/java/sebastiano/caccaro/KeyPressTest.java

@@ -29,7 +29,7 @@ public class BeatManager {
   }
 
   private int singeBeatInterval() {
-    return (int) ((double) SECONDS_IN_A_MINUTE / bpm) * 1000;
+    return SECONDS_IN_A_MINUTE * 1000 / bpm;
   }
 
   public int getBpm() {
@@ -67,6 +67,9 @@ public class BeatManager {
   }
 
   public void playSequence(int beatNumber, List<RichSample> availableSamples) {
+    if (availableSamples.size() == 0) {
+      return;
+    }
     Random randomizer = new Random();
     Synth synth = Synth.getInstance();
     lastSequence = new LinkedList<TimedSoundRecord>();
@@ -75,7 +78,7 @@ public class BeatManager {
     for (int i = 0; i < beatNumber; i++) {
       int maxInt = availableSamples.size();
       /* TODO Better handling of pauses*/
-      int randNumber = randomizer.nextInt(maxInt + 1);
+      int randNumber = randomizer.nextInt(maxInt/* + 1 */);
       if (randNumber != maxInt) {
         int delayInMilliseconds = singeBeatInterval() * i;
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();

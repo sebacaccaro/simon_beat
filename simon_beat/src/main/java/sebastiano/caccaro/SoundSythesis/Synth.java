@@ -18,7 +18,7 @@ public class Synth {
 
   private static final Synth INSTANCE = new Synth();
   private static final String SAMPLES_DIR = "src/main/resources/samples/";
-  private List<RichSample> samples = new LinkedList<RichSample>();
+  private Map<Integer, RichSample> samples = new HashMap<Integer, RichSample>();
   private final Synthesizer synth = JSyn.createSynthesizer();
   private Map<Integer, VariableRateStereoReader> samplePlayers = new HashMap<Integer, VariableRateStereoReader>();
 
@@ -29,10 +29,11 @@ public class Synth {
 
     String[] samples = new File(SAMPLES_DIR).list();
     for (String sampleName : samples) {
-      this.samples.add(new RichSample(SAMPLES_DIR + sampleName));
+      RichSample sample = new RichSample(SAMPLES_DIR + sampleName);
+      this.samples.put(sample.getCode(), sample);
     }
 
-    for (RichSample sample : this.samples) {
+    for (RichSample sample : this.samples.values()) {
       VariableRateStereoReader samplePlayer = new VariableRateStereoReader();
       samplePlayer.output.connect(0, lineOut.input, 0);
       samplePlayer.output.connect(1, lineOut.input, 1);
@@ -65,6 +66,10 @@ public class Synth {
   }
 
   public List<RichSample> getSamples() {
-    return new LinkedList<RichSample>(samples);
+    return new LinkedList<RichSample>(samples.values());
+  }
+
+  public RichSample getSampleFromCode(int code) {
+    return samples.get(code);
   }
 }

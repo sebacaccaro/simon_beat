@@ -3,11 +3,15 @@ package sebastiano.caccaro;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import javax.swing.Action;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -15,6 +19,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.event.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import sebastiano.caccaro.Components.InstrumentButton;
 import sebastiano.caccaro.SoundSythesis.BeatManager;
 import sebastiano.caccaro.SoundSythesis.RichSample;
@@ -27,9 +34,6 @@ public class MainApp extends JFrame {
   static final String FONT_NAME = "Sans-Serif";
   static final List<Color> BUTTON_COLORS = new ArrayList<Color>(
     Arrays.asList(Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW)
-  );
-  static final List<String> SOUNDS_NAMES = new ArrayList<String>(
-    Arrays.asList("Lorem", "Ipsum", "Grancassa", "Piatti", "Rullante")
   );
 
   private Map<Integer, InstrumentButton> buttons = new HashMap<Integer, InstrumentButton>();
@@ -90,19 +94,41 @@ public class MainApp extends JFrame {
       bm.subscribe(button);
     }
 
-    for (String sound : SOUNDS_NAMES) {
-      leftSettingsPanel.add(new JCheckBox(sound));
+    for (RichSample sample : samples) {
+      JCheckBox checkBox = new JCheckBox(sample.getName(), true);
+      leftSettingsPanel.add(checkBox);
+      checkBox.addActionListener(
+        new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) { // 1 = unsel -> selc // 2 = contrario
+            boolean isButtonVisible = ((JCheckBox) e.getSource()).isSelected();
+            buttons.get(sample.getCode()).setVisible(isButtonVisible);
+          }
+        }
+      );
     }
 
-    JSlider bpmSelector = new JSlider();
-    JLabel bpmIndication = new JLabel("30 BPM");
+    JLabel bpmIndication = new JLabel(String.valueOf(bm.getBpm()));
+    JSlider bpmSelector = new JSlider(20, 500, bm.getBpm());
+    bpmSelector.addChangeListener(
+      new ChangeListener() {
+        @Override
+        public void stateChanged(ChangeEvent e) {
+          JSlider source = (JSlider) (e.getSource());
+          bpmIndication.setText(source.getValue() + " BPM");
+          if (!source.getValueIsAdjusting()) {
+            bm.setBpm(source.getValue());
+          }
+        }
+      }
+    );
     rightSettingsPanel.add(bpmSelector);
     rightSettingsPanel.add(bpmIndication);
     rightSettingsPanel.add(
       new InstrumentButton(
         Color.GREEN,
         () -> {
-          bm.playSequence(5, samples);
+          bm.playSequence(5, enabledSamples());
         },
         20
       )
@@ -111,6 +137,16 @@ public class MainApp extends JFrame {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     pack();
     setVisible(true);
+  }
+
+  public List<RichSample> enabledSamples() {
+    List<RichSample> enabled = new LinkedList<RichSample>();
+    for (int code : buttons.keySet()) {
+      if (buttons.get(code).isVisible()) {
+        enabled.add(Synth.getInstance().getSampleFromCode(code));
+      }
+    }
+    return enabled;
   }
 
   public static void main(String[] args) {
