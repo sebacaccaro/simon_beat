@@ -6,17 +6,27 @@ import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.event.*;
 import java.awt.event.MouseAdapter;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
 import javax.swing.JButton;
 import javax.swing.border.LineBorder;
+import sebastiano.caccaro.SoundSythesis.RichSample;
+import sebastiano.caccaro.SoundSythesis.SampleSubscriber;
 
-public class InstrumentButton extends JButton {
+public class InstrumentButton extends JButton implements SampleSubscriber {
 
   final Color baseColor;
+  private int code;
+  private Runnable clickFunction;
 
-  public InstrumentButton(Color btnColor) {
+  public InstrumentButton(Color btnColor, Runnable clickFunction, int code) {
     super();
-    this.baseColor = btnColor;
-    setBackground(btnColor);
+    this.code = (code);
+    this.clickFunction = clickFunction;
+    this.baseColor = btnColor.darker().darker();
+    setBackground(baseColor);
     setPreferredSize(new Dimension(80, 80));
     setBorder(new LineBorder(Color.BLACK, 0));
     addMouseListener(
@@ -33,19 +43,47 @@ public class InstrumentButton extends JButton {
 
         @Override
         public void mousePressed(MouseEvent e) {
-          setBackground(getBaseColor().darker());
+          setBackground(getBaseColor().brighter().brighter());
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
-          setBackground(getBaseColor());
+          setBackground(getBaseColor().brighter());
+        }
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+          getClickFunction().run();
         }
       }
     );
   }
 
+  @Override
+  public void notifySample(RichSample sample, int durationMilliseconds) {
+    if (sample.getCode() == this.code) {
+      flashFor(durationMilliseconds);
+    }
+  }
+
+  public void flashFor(int milliSeconds) {
+    setBackground(getBaseColor().brighter().brighter());
+    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    executorService.schedule(
+      () -> {
+        setBackground(getBaseColor());
+      },
+      milliSeconds,
+      TimeUnit.MILLISECONDS
+    );
+  }
+
   public Color getBaseColor() {
     return this.baseColor;
+  }
+
+  private Runnable getClickFunction() {
+    return clickFunction;
   }
 
   @Override

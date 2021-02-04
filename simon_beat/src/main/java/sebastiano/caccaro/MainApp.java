@@ -5,7 +5,9 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -14,6 +16,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import sebastiano.caccaro.Components.InstrumentButton;
+import sebastiano.caccaro.SoundSythesis.BeatManager;
+import sebastiano.caccaro.SoundSythesis.RichSample;
+import sebastiano.caccaro.SoundSythesis.Synth;
 
 public class MainApp extends JFrame {
 
@@ -27,8 +32,11 @@ public class MainApp extends JFrame {
     Arrays.asList("Lorem", "Ipsum", "Grancassa", "Piatti", "Rullante")
   );
 
+  private Map<Integer, InstrumentButton> buttons = new HashMap<Integer, InstrumentButton>();
+
   public MainApp(String windowTitle) {
     super(windowTitle);
+    final BeatManager bm = new BeatManager();
     setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
     JPanel titlePanel = new JPanel();
@@ -64,10 +72,22 @@ public class MainApp extends JFrame {
     );
     infoPanel.add(playButton);
 
-    for (int i = 0; i < 7; i++) {
-      playPanel.add(
-        new InstrumentButton(BUTTON_COLORS.get(i % BUTTON_COLORS.size()))
+    Synth synth = Synth.getInstance();
+    List<RichSample> samples = synth.getSamples();
+    for (int i = 0; i < samples.size(); i++) {
+      final int sampleNum = i;
+      InstrumentButton button = new InstrumentButton(
+        BUTTON_COLORS.get(i % BUTTON_COLORS.size()),
+        () -> {
+          RichSample sample = samples.get(sampleNum);
+          synth.queueSample(sample);
+          bm.addToUserSequence(sample);
+        },
+        samples.get(i).getCode()
       );
+      playPanel.add(button);
+      buttons.put(samples.get(i).getCode(), button);
+      bm.subscribe(button);
     }
 
     for (String sound : SOUNDS_NAMES) {
@@ -78,6 +98,15 @@ public class MainApp extends JFrame {
     JLabel bpmIndication = new JLabel("30 BPM");
     rightSettingsPanel.add(bpmSelector);
     rightSettingsPanel.add(bpmIndication);
+    rightSettingsPanel.add(
+      new InstrumentButton(
+        Color.GREEN,
+        () -> {
+          bm.playSequence(5, samples);
+        },
+        20
+      )
+    );
 
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     pack();

@@ -22,8 +22,6 @@ public class Synth {
   private final Synthesizer synth = JSyn.createSynthesizer();
   private Map<Integer, VariableRateStereoReader> samplePlayers = new HashMap<Integer, VariableRateStereoReader>();
 
-  //private VariableRateStereoReader samplePlayer;
-
   private Synth() {
     synth.start();
     LineOut lineOut = new LineOut();
@@ -51,17 +49,10 @@ public class Synth {
     return INSTANCE;
   }
 
-  public void queueSample(RichSample sample, double afterSeconds) {
-    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-    executorService.schedule(
-      () -> {
-        VariableRateStereoReader player = samplePlayers.get(sample.getCode());
-        player.dataQueue.clear();
-        player.dataQueue.queue(sample.getSample());
-      },
-      (int) afterSeconds * 1000,
-      TimeUnit.MILLISECONDS
-    );
+  public void queueSample(RichSample sample) {
+    VariableRateStereoReader player = samplePlayers.get(sample.getCode());
+    player.dataQueue.clear();
+    player.dataQueue.queue(sample.getSample());
   }
 
   public void sleepFor(double seconds) {
