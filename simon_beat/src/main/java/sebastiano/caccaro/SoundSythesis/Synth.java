@@ -5,22 +5,27 @@ import com.jsyn.Synthesizer;
 import com.jsyn.unitgen.LineOut;
 import com.jsyn.unitgen.VariableRateStereoReader;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import sebastiano.caccaro.Components.GameListener;
 
-public class Synth {
+public class Synth implements GameListener {
 
   private static final Synth INSTANCE = new Synth();
   private static final String SAMPLES_DIR = "src/main/resources/samples/";
   private Map<Integer, RichSample> samples = new HashMap<Integer, RichSample>();
   private final Synthesizer synth = JSyn.createSynthesizer();
   private Map<Integer, VariableRateStereoReader> samplePlayers = new HashMap<Integer, VariableRateStereoReader>();
+  private RichSample success;
+  private RichSample failure;
+  private VariableRateStereoReader gameEffectPlayer;
+
+  enum Result {
+    SUCCES,
+    FAILURE,
+  }
 
   private Synth() {
     synth.start();
@@ -43,7 +48,23 @@ public class Synth {
       synth.add(samplePlayer);
     }
 
+    gameEffectPlayer = new VariableRateStereoReader();
+    gameEffectPlayer.amplitude.set(0.1);
+    gameEffectPlayer.output.connect(0, lineOut.input, 0);
+    gameEffectPlayer.output.connect(1, lineOut.input, 1);
+    synth.add(gameEffectPlayer);
+    success =
+      new RichSample("src/main/resources/standard_sounds/9998_success.wav");
+    failure =
+      new RichSample("src/main/resources/standard_sounds/9999_failure.wav");
+
     lineOut.start();
+  }
+
+  public void playGameSound(Result result) {
+    RichSample sample = result == Result.SUCCES ? success : failure;
+    gameEffectPlayer.rate.set(sample.getSample().getFrameRate());
+    gameEffectPlayer.dataQueue.queue(sample.getSample());
   }
 
   public static Synth getInstance() {
@@ -56,20 +77,20 @@ public class Synth {
     player.dataQueue.queue(sample.getSample());
   }
 
-  public void sleepFor(double seconds) {
-    try {
-      synth.sleepFor(seconds);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-  }
-
   public List<RichSample> getSamples() {
     return new LinkedList<RichSample>(samples.values());
   }
 
   public RichSample getSampleFromCode(int code) {
     return samples.get(code);
+  }
+
+  @Override
+  public void notify(int level) {
+    if (level == 0) {
+      playGameSound(Result.FAILURE);
+    } else {
+      playGameSound(Result.SUCCES);
+    }
   }
 }

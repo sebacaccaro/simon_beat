@@ -6,6 +6,7 @@ import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.event.*;
 import java.awt.event.MouseAdapter;
+import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +19,7 @@ import sebastiano.caccaro.SoundSythesis.SampleSubscriber;
 public class InstrumentButton extends JButton implements SampleSubscriber {
 
   final Color baseColor;
+  Color brightX2;
   private int code;
   private Runnable clickFunction;
 
@@ -26,6 +28,7 @@ public class InstrumentButton extends JButton implements SampleSubscriber {
     this.code = (code);
     this.clickFunction = clickFunction;
     this.baseColor = btnColor.darker().darker();
+    this.brightX2 = btnColor;
     setBackground(baseColor);
     setPreferredSize(new Dimension(80, 80));
     setBorder(new LineBorder(Color.BLACK, 0));
@@ -67,11 +70,13 @@ public class InstrumentButton extends JButton implements SampleSubscriber {
   }
 
   public void flashFor(int milliSeconds) {
-    setBackground(getBaseColor().brighter().brighter());
+    setBackground(brightX2);
+    paintImmediately(getBounds());
     ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     executorService.schedule(
       () -> {
         setBackground(getBaseColor());
+        paintImmediately(getBounds());
       },
       milliSeconds,
       TimeUnit.MILLISECONDS

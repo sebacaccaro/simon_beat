@@ -30,4 +30,10 @@ public class TimedSoundRecord {
   public void setMillisecondsFromStart(long millisecondsFromStart) {
     this.millisecondsFromStart = millisecondsFromStart;
   }
+
+  public int differenceFrom(TimedSoundRecord other) {
+    return (int) Math.abs(
+      this.getMillisecondsFromStart() - other.getMillisecondsFromStart()
+    );
+  }
 }

@@ -23,6 +23,7 @@ import javax.swing.event.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import sebastiano.caccaro.Components.InstrumentButton;
+import sebastiano.caccaro.Components.LevelLabel;
 import sebastiano.caccaro.SoundSythesis.BeatManager;
 import sebastiano.caccaro.SoundSythesis.RichSample;
 import sebastiano.caccaro.SoundSythesis.Synth;
@@ -36,11 +37,13 @@ public class MainApp extends JFrame {
     Arrays.asList(Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW)
   );
 
+  private Game game = new Game();
   private Map<Integer, InstrumentButton> buttons = new HashMap<Integer, InstrumentButton>();
 
   public MainApp(String windowTitle) {
     super(windowTitle);
     final BeatManager bm = new BeatManager();
+    bm.subscribeToResults(game);
     setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
     JPanel titlePanel = new JPanel();
@@ -66,9 +69,10 @@ public class MainApp extends JFrame {
     mainTitle.setFont(new Font(FONT_NAME, Font.PLAIN, MAINTITLE_FONT_SIZE));
     titlePanel.add(mainTitle);
 
-    JLabel level = new JLabel("LEVEL 222");
+    LevelLabel level = new LevelLabel("Level: ");
     level.setFont(new Font(FONT_NAME, Font.PLAIN, LEVEL_FONT_SIZE));
     infoPanel.add(level);
+    game.subscribeToLevel(level);
 
     JButton playButton = new JButton("PLAY!");
     playButton.setPreferredSize(
@@ -91,7 +95,7 @@ public class MainApp extends JFrame {
       );
       playPanel.add(button);
       buttons.put(samples.get(i).getCode(), button);
-      bm.subscribe(button);
+      bm.subscribe(button, samples.get(i).getCode());
     }
 
     for (RichSample sample : samples) {
@@ -128,12 +132,13 @@ public class MainApp extends JFrame {
       new InstrumentButton(
         Color.GREEN,
         () -> {
-          bm.playSequence(5, enabledSamples());
+          bm.playSequence(game.getLevel() + 1, enabledSamples());
         },
         20
       )
     );
 
+    game.subscribeToLevel(synth);
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     pack();
     setVisible(true);

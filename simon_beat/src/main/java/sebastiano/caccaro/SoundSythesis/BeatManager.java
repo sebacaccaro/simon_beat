@@ -1,13 +1,19 @@
 package sebastiano.caccaro.SoundSythesis;
 
+import java.security.spec.ECField;
 import java.sql.Time;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import sebastiano.caccaro.GameResult;
+import sebastiano.caccaro.ResultsSubscriber;
 
 public class BeatManager {
 
@@ -18,7 +24,8 @@ public class BeatManager {
   private List<TimedSoundRecord> lastSequence = new LinkedList<TimedSoundRecord>();
   private List<TimedSoundRecord> userSequence = new LinkedList<TimedSoundRecord>();
   private long userSequenceStartTimestamp = 0;
-  private List<SampleSubscriber> subscribers = new LinkedList<SampleSubscriber>();
+  private Map<Integer, SampleSubscriber> subscribers = new HashMap<Integer, SampleSubscriber>();
+  private List<ResultsSubscriber> resultsSubscribers = new LinkedList<ResultsSubscriber>();
 
   public BeatManager(int bpm) {
     this.bpm = bpm;
@@ -48,22 +55,27 @@ public class BeatManager {
     userSequence.add(
       new TimedSoundRecord(sample, timestamp - userSequenceStartTimestamp)
     );
-    /*TODO Rimuovere codice test*/
     if (lastSequence.size() >= userSequence.size()) {
-      int el = userSequence.size() - 1;
-      System.out.println(
-        userSequence.get(el).getMillisecondsFromStart() -
-        lastSequence.get(el).getMillisecondsFromStart()
-      );
+      int lastPress = userSequence.size() - 1;
+      TimedSoundRecord user = userSequence.get(lastPress);
+      TimedSoundRecord expected = lastSequence.get(lastPress);
+      GameResult gm = new GameResult(user, expected);
+      for (ResultsSubscriber rs : resultsSubscribers) {
+        rs.notify(gm);
+      }
     }
+  }
+
+  public void subscribeToResults(ResultsSubscriber rs) {
+    resultsSubscribers.add(rs);
   }
 
   public void clearUserSequence() {
     userSequence = new LinkedList<TimedSoundRecord>();
   }
 
-  public void subscribe(SampleSubscriber sb) {
-    subscribers.add(sb);
+  public void subscribe(SampleSubscriber sb, int code) {
+    subscribers.put(code, sb);
   }
 
   public void playSequence(int beatNumber, List<RichSample> availableSamples) {
@@ -80,15 +92,14 @@ public class BeatManager {
       /* TODO Better handling of pauses*/
       int randNumber = randomizer.nextInt(maxInt/* + 1 */);
       if (randNumber != maxInt) {
+        RichSample sample = availableSamples.get(randNumber);
         int delayInMilliseconds = singeBeatInterval() * i;
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        SampleSubscriber sb = subscribers.get(sample.getCode());
+        lastSequence.add(new TimedSoundRecord(sample, delayInMilliseconds));
         executorService.schedule(
           () -> {
-            RichSample sample = availableSamples.get(randNumber);
-            lastSequence.add(new TimedSoundRecord(sample, delayInMilliseconds));
-            for (SampleSubscriber subscriber : subscribers) {
-              subscriber.notifySample(sample, singeBeatInterval() / 2);
-            }
+            sb.notifySample(sample, singeBeatInterval() / 2);
             synth.queueSample(sample);
           },
           delayInMilliseconds,
