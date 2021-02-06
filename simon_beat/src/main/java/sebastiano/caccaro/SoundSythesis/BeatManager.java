@@ -12,13 +12,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import sebastiano.caccaro.Components.GameListener;
 import sebastiano.caccaro.GameResult;
 import sebastiano.caccaro.ResultsSubscriber;
 
-public class BeatManager {
+public class BeatManager implements GameListener {
 
   private static final int STANDARD_BPM = 60;
   private static final int SECONDS_IN_A_MINUTE = 60;
+  private static final int MILLISECONDS_BETWEEN_ROUNDS = 2000;
 
   private int bpm;
   private List<TimedSoundRecord> lastSequence = new LinkedList<TimedSoundRecord>();
@@ -26,6 +28,7 @@ public class BeatManager {
   private long userSequenceStartTimestamp = 0;
   private Map<Integer, SampleSubscriber> subscribers = new HashMap<Integer, SampleSubscriber>();
   private List<ResultsSubscriber> resultsSubscribers = new LinkedList<ResultsSubscriber>();
+  private List<RichSample> cached_samples;
 
   public BeatManager(int bpm) {
     this.bpm = bpm;
@@ -79,6 +82,7 @@ public class BeatManager {
   }
 
   public void playSequence(int beatNumber, List<RichSample> availableSamples) {
+    cached_samples = availableSamples;
     if (availableSamples.size() == 0) {
       return;
     }
@@ -94,9 +98,9 @@ public class BeatManager {
       if (randNumber != maxInt) {
         RichSample sample = availableSamples.get(randNumber);
         int delayInMilliseconds = singeBeatInterval() * i;
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         SampleSubscriber sb = subscribers.get(sample.getCode());
         lastSequence.add(new TimedSoundRecord(sample, delayInMilliseconds));
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.schedule(
           () -> {
             sb.notifySample(sample, singeBeatInterval() / 2);
@@ -113,5 +117,19 @@ public class BeatManager {
   public static void main(String[] args) {
     BeatManager bm = new BeatManager(60);
     bm.playSequence(20, Synth.getInstance().getSamples());
+  }
+
+  @Override
+  public void notify(int level) {
+    if (level >= 1) {
+      ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+      executorService.schedule(
+        () -> {
+          playSequence(level + 1, cached_samples);
+        },
+        MILLISECONDS_BETWEEN_ROUNDS,
+        TimeUnit.MILLISECONDS
+      );
+    }
   }
 }

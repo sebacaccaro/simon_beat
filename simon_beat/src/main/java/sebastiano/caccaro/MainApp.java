@@ -24,6 +24,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import sebastiano.caccaro.Components.InstrumentButton;
 import sebastiano.caccaro.Components.LevelLabel;
+import sebastiano.caccaro.Components.PlayButton;
 import sebastiano.caccaro.SoundSythesis.BeatManager;
 import sebastiano.caccaro.SoundSythesis.RichSample;
 import sebastiano.caccaro.SoundSythesis.Synth;
@@ -74,10 +75,24 @@ public class MainApp extends JFrame {
     infoPanel.add(level);
     game.subscribeToLevel(level);
 
-    JButton playButton = new JButton("PLAY!");
+    PlayButton playButton = new PlayButton();
     playButton.setPreferredSize(
       new Dimension(LEVEL_FONT_SIZE * 3, LEVEL_FONT_SIZE)
     );
+    playButton.addActionListener(
+      new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          if (playButton.isButtonShowingPlay()) {
+            // START GAME
+            bm.playSequence(game.getLevel() + 1, enabledSamples());
+          } else {
+            game.gameOver();
+          }
+        }
+      }
+    );
+    game.subscribeToLevel(playButton);
     infoPanel.add(playButton);
 
     Synth synth = Synth.getInstance();
@@ -128,17 +143,9 @@ public class MainApp extends JFrame {
     );
     rightSettingsPanel.add(bpmSelector);
     rightSettingsPanel.add(bpmIndication);
-    rightSettingsPanel.add(
-      new InstrumentButton(
-        Color.GREEN,
-        () -> {
-          bm.playSequence(game.getLevel() + 1, enabledSamples());
-        },
-        20
-      )
-    );
 
     game.subscribeToLevel(synth);
+    game.subscribeToLevel(bm);
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     pack();
     setVisible(true);
