@@ -4,7 +4,7 @@ Progetto per il corso di Programmazione per la Musica A.A 20/21 <br>
 **Mail**: `sebastiano.caccaro@studenti.unimi.it`
 
 ## Descrizione
-Il progetto emula il gioca simon. Lo scopo del giocatore è di riprodurre la sequenza di suoni generata dal gioco. La lunghezza di tale sequenze aumenta di un'unità ogni volta che il giocatore la riproduce correttamente.
+Il progetto emula il gioco simon. Lo scopo del giocatore è di riprodurre la sequenza di suoni generata dal gioco. La lunghezza di tale sequenze aumenta di un'unità ogni volta che il giocatore la riproduce correttamente.
 
 ### Caratteristiche
 Il progetto presenta delle variazioni rispetto al gioco originale:
