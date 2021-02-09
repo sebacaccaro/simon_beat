@@ -40,7 +40,7 @@ import sebastiano.caccaro.SoundSythesis.RichSample;
 import sebastiano.caccaro.SoundSythesis.SoundBank;
 import sebastiano.caccaro.SoundSythesis.Synth;
 
-public class App extends JFrame implements GameSubscriber {
+public class App extends JFrame {
 
   /**
    *
@@ -308,11 +308,5 @@ public class App extends JFrame implements GameSubscriber {
 
   public static void main(String[] args) {
     App app = new App("Simon Beat");
-  }
-
-  @Override
-  public void notify(int score) {
-    // TODO Auto-generated method stub
-
   }
 }
