@@ -1,7 +1,5 @@
 package sebastiano.caccaro.SoundSythesis;
 
-import java.security.spec.ECField;
-import java.sql.Time;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -9,10 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import sebastiano.caccaro.Components.GameListener;
+import sebastiano.caccaro.Components.LevelStartListener;
 import sebastiano.caccaro.GameResult;
 import sebastiano.caccaro.ResultsSubscriber;
 
@@ -29,6 +27,9 @@ public class BeatManager implements GameListener {
   private Map<Integer, SampleSubscriber> subscribers = new HashMap<Integer, SampleSubscriber>();
   private List<ResultsSubscriber> resultsSubscribers = new LinkedList<ResultsSubscriber>();
   private List<RichSample> cached_samples;
+  private List<LevelStartListener> levelStartListeners = new LinkedList<LevelStartListener>();
+  private ScheduledExecutorService nextLevelSequence = null;
+  private List<ScheduledExecutorService> nextSamples = new LinkedList<ScheduledExecutorService>();
 
   public BeatManager(int bpm) {
     this.bpm = bpm;
@@ -56,7 +57,11 @@ public class BeatManager implements GameListener {
       userSequenceStartTimestamp = timestamp;
     }
     userSequence.add(
-      new TimedSoundRecord(sample, timestamp - userSequenceStartTimestamp)
+      new TimedSoundRecord(
+        sample,
+        timestamp - userSequenceStartTimestamp,
+        singeBeatInterval()
+      )
     );
     if (lastSequence.size() >= userSequence.size()) {
       int lastPress = userSequence.size() - 1;
@@ -81,6 +86,18 @@ public class BeatManager implements GameListener {
     subscribers.put(code, sb);
   }
 
+  public void unSubscribe(int code) {
+    subscribers.remove(code);
+  }
+
+  public void subscribeToLevelStart(LevelStartListener lsl) {
+    levelStartListeners.add(lsl);
+  }
+
+  public void unSubscribeToLevelStart(LevelStartListener lsl) {
+    levelStartListeners.remove(lsl);
+  }
+
   public void playSequence(int beatNumber, List<RichSample> availableSamples) {
     cached_samples = availableSamples;
     if (availableSamples.size() == 0) {
@@ -91,26 +108,29 @@ public class BeatManager implements GameListener {
     lastSequence = new LinkedList<TimedSoundRecord>();
     clearUserSequence();
 
+    for (LevelStartListener levelStartListener : levelStartListeners) {
+      levelStartListener.notifyLevelStart(beatNumber * singeBeatInterval());
+    }
     for (int i = 0; i < beatNumber; i++) {
       int maxInt = availableSamples.size();
-      /* TODO Better handling of pauses*/
-      int randNumber = randomizer.nextInt(maxInt/* + 1 */);
-      if (randNumber != maxInt) {
-        RichSample sample = availableSamples.get(randNumber);
-        int delayInMilliseconds = singeBeatInterval() * i;
-        SampleSubscriber sb = subscribers.get(sample.getCode());
-        lastSequence.add(new TimedSoundRecord(sample, delayInMilliseconds));
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.schedule(
-          () -> {
-            sb.notifySample(sample, singeBeatInterval() / 2);
-            synth.queueSample(sample);
-          },
-          delayInMilliseconds,
-          TimeUnit.MILLISECONDS
-        );
-      }
-      //synth.sleepFor(singeBeatInterval());
+      int randNumber = randomizer.nextInt(maxInt);
+      RichSample sample = availableSamples.get(randNumber);
+      int delayInMilliseconds = singeBeatInterval() * i;
+      SampleSubscriber sb = subscribers.get(sample.getCode());
+      lastSequence.add(
+        new TimedSoundRecord(sample, delayInMilliseconds, singeBeatInterval())
+      );
+      ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+      nextSamples.add(executorService);
+      executorService.schedule(
+        () -> {
+          synth.queueSample(sample);
+          sb.notifySample(sample, singeBeatInterval() / 2);
+          nextSamples.remove(executorService);
+        },
+        delayInMilliseconds,
+        TimeUnit.MILLISECONDS
+      );
     }
   }
 
@@ -122,14 +142,23 @@ public class BeatManager implements GameListener {
   @Override
   public void notify(int level) {
     if (level >= 1) {
-      ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-      executorService.schedule(
+      nextLevelSequence = Executors.newSingleThreadScheduledExecutor();
+      nextLevelSequence.schedule(
         () -> {
           playSequence(level + 1, cached_samples);
         },
         MILLISECONDS_BETWEEN_ROUNDS,
         TimeUnit.MILLISECONDS
       );
+    } else {
+      if (nextLevelSequence != null) {
+        nextLevelSequence.shutdownNow();
+        nextLevelSequence = null;
+        for (ScheduledExecutorService nextSample : nextSamples) {
+          nextSample.shutdownNow();
+        }
+        nextSamples = new LinkedList<ScheduledExecutorService>();
+      }
     }
   }
 }

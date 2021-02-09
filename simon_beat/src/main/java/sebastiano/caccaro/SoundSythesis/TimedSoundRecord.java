@@ -4,15 +4,30 @@ public class TimedSoundRecord {
 
   private RichSample sample;
   private long millisecondsFromStart;
+  private int milliSecondPerBeat;
 
   public TimedSoundRecord() {
+    milliSecondPerBeat = 0;
     millisecondsFromStart = 0;
     sample = null;
   }
 
-  public TimedSoundRecord(RichSample sample, long millisecondsFromStart) {
+  public TimedSoundRecord(
+    RichSample sample,
+    long millisecondsFromStart,
+    int milliSecondPerBeat
+  ) {
     this.sample = sample;
     this.millisecondsFromStart = millisecondsFromStart;
+    this.milliSecondPerBeat = milliSecondPerBeat;
+  }
+
+  public int getMillisecondsPerBeat() {
+    return this.milliSecondPerBeat;
+  }
+
+  public void setMillisecondsPerBeat(int milliSecondPerBeat) {
+    this.milliSecondPerBeat = milliSecondPerBeat;
   }
 
   public RichSample getSample() {

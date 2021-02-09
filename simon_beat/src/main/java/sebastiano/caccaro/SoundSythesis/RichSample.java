@@ -7,12 +7,14 @@ import java.io.IOException;
 
 public class RichSample {
 
+  private static int runningCode = 0;
+
   private FloatSample sample;
   private String name;
   private int code;
   private String path;
 
-  public RichSample(String path) {
+  public RichSample(String path) throws Exception {
     this.path = path;
     try {
       this.sample = SampleLoader.loadFloatSample(new File(path));
@@ -23,10 +25,19 @@ public class RichSample {
     // I'm assung filenames are in this format
     // Code_Sound Name.wav
     String[] pathSplitted = path.split("/");
-    String filename = pathSplitted[pathSplitted.length - 1].split("\\.")[0];
-    String[] filenameSplitted = filename.split("_");
-    this.code = Integer.parseInt(filenameSplitted[0]);
-    this.name = filenameSplitted[1];
+    String[] fileAndExtension =
+      pathSplitted[pathSplitted.length - 1].split("\\.");
+    String filename = fileAndExtension[0];
+    String extension = fileAndExtension[1];
+    this.code = runningCode++;
+    this.name = filename;
+    if (!extension.equals("wav")) {
+      throw (
+        new Exception(
+          "Could not load " + path + ": wrong extension (" + extension + ")"
+        )
+      );
+    }
   }
 
   public int getCode() {

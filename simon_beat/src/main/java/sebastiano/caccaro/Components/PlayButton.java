@@ -4,11 +4,19 @@ import javax.swing.JButton;
 
 public class PlayButton extends JButton implements GameListener {
 
+  /**
+   *
+   */
+  private static final long serialVersionUID = 2479831854923385050L;
   private boolean isButtonShowingPlay_attr = true;
 
   @Override
   public void notify(int level) {
-    if (level == 0) {
+    setPlayMode(level < 1);
+  }
+
+  public void setPlayMode(boolean shouldShowPlay) {
+    if (shouldShowPlay) {
       setText("Play");
       isButtonShowingPlay_attr = true;
     } else {

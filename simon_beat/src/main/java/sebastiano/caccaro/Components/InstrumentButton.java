@@ -6,29 +6,32 @@ import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.event.*;
 import java.awt.event.MouseAdapter;
-import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
 import javax.swing.JButton;
 import javax.swing.border.LineBorder;
 import sebastiano.caccaro.SoundSythesis.RichSample;
 import sebastiano.caccaro.SoundSythesis.SampleSubscriber;
 
-public class InstrumentButton extends JButton implements SampleSubscriber {
+public class InstrumentButton
+  extends JButton
+  implements SampleSubscriber, GameListener, LevelStartListener {
 
+  /**
+   *
+   */
+  private static final long serialVersionUID = -2079634524450035767L;
   final Color baseColor;
-  Color brightX2;
   private int code;
   private Runnable clickFunction;
+  private ScheduledExecutorService autoEnable = null;
 
   public InstrumentButton(Color btnColor, Runnable clickFunction, int code) {
     super();
     this.code = (code);
     this.clickFunction = clickFunction;
     this.baseColor = btnColor.darker().darker();
-    this.brightX2 = btnColor;
     setBackground(baseColor);
     setPreferredSize(new Dimension(80, 80));
     setBorder(new LineBorder(Color.BLACK, 0));
@@ -36,7 +39,9 @@ public class InstrumentButton extends JButton implements SampleSubscriber {
       new MouseAdapter() {
         @Override
         public void mouseEntered(MouseEvent e) {
-          setBackground(getBaseColor().brighter());
+          if (isEnabled()) {
+            setBackground(getBaseColor().brighter());
+          }
         }
 
         @Override
@@ -46,20 +51,37 @@ public class InstrumentButton extends JButton implements SampleSubscriber {
 
         @Override
         public void mousePressed(MouseEvent e) {
-          setBackground(getBaseColor().brighter().brighter());
+          if (isEnabled()) {
+            setBackground(getBaseColor().brighter().brighter());
+          }
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
-          setBackground(getBaseColor().brighter());
+          if (isEnabled()) {
+            if (getBackground() != getBaseColor()) {
+              setBackground(getBaseColor().brighter());
+            }
+          }
         }
 
         @Override
         public void mouseClicked(MouseEvent e) {
-          getClickFunction().run();
+          if (isEnabled()) {
+            getClickFunction().run();
+          }
         }
       }
     );
+  }
+
+  @Override
+  public void setEnabled(boolean b) {
+    if (b == false && autoEnable != null) {
+      autoEnable.shutdownNow();
+      autoEnable = null;
+    }
+    super.setEnabled(b);
   }
 
   @Override
@@ -70,7 +92,7 @@ public class InstrumentButton extends JButton implements SampleSubscriber {
   }
 
   public void flashFor(int milliSeconds) {
-    setBackground(brightX2);
+    setBackground(baseColor.brighter().brighter());
     paintImmediately(getBounds());
     ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     executorService.schedule(
@@ -103,5 +125,25 @@ public class InstrumentButton extends JButton implements SampleSubscriber {
     setFocusPainted(false);
     //setContentAreaFilled(false)
     setMargin(new Insets(0, 0, 0, 0));
+  }
+
+  @Override
+  public void notify(int level) {
+    setEnabled(false);
+  }
+
+  @Override
+  public void notifyLevelStart(int levelDurationInMs) {
+    setEnabled(false);
+    setBackground(this.baseColor);
+    autoEnable = Executors.newSingleThreadScheduledExecutor();
+    autoEnable.schedule(
+      () -> {
+        setEnabled(true);
+        autoEnable = null;
+      },
+      levelDurationInMs,
+      TimeUnit.MILLISECONDS
+    );
   }
 }

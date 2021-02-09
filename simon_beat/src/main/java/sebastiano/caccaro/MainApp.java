@@ -1,35 +1,49 @@
 package sebastiano.caccaro;
 
+import static javax.swing.JOptionPane.showMessageDialog;
+
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import javax.swing.Action;
 import javax.swing.BoxLayout;
+import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
-import javax.swing.event.*;
+import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import sebastiano.caccaro.Components.GameListener;
 import sebastiano.caccaro.Components.InstrumentButton;
 import sebastiano.caccaro.Components.LevelLabel;
+import sebastiano.caccaro.Components.ObserverCheckBox;
+import sebastiano.caccaro.Components.ObserverComboBox;
+import sebastiano.caccaro.Components.ObserverSlider;
 import sebastiano.caccaro.Components.PlayButton;
+import sebastiano.caccaro.Components.ScoreLabel;
+import sebastiano.caccaro.Components.WrapLayout;
 import sebastiano.caccaro.SoundSythesis.BeatManager;
 import sebastiano.caccaro.SoundSythesis.RichSample;
+import sebastiano.caccaro.SoundSythesis.SoundBank;
 import sebastiano.caccaro.SoundSythesis.Synth;
 
-public class MainApp extends JFrame {
+public class MainApp extends JFrame implements GameListener {
 
   static final int MAINTITLE_FONT_SIZE = 120;
   static final int LEVEL_FONT_SIZE = 40;
@@ -40,21 +54,28 @@ public class MainApp extends JFrame {
 
   private Game game = new Game();
   private Map<Integer, InstrumentButton> buttons = new HashMap<Integer, InstrumentButton>();
+  public List<ObserverCheckBox> checkBoxes = new LinkedList<ObserverCheckBox>();
+  public ObserverSlider bpmSlider;
+  private BeatManager beatManager = new BeatManager();
+  private JPanel playPanel;
+  private JPanel leftSettingsPanel;
+  private ObserverComboBox soundBankSelector;
 
   public MainApp(String windowTitle) {
     super(windowTitle);
-    final BeatManager bm = new BeatManager();
-    bm.subscribeToResults(game);
+    beatManager.subscribeToResults(game);
     setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
-    JPanel titlePanel = new JPanel();
-    JPanel infoPanel = new JPanel();
-    JPanel playPanel = new JPanel();
-    JPanel settingsPanel = new JPanel();
+    JPanel titlePanel = new JPanel(new GridLayout(0, 1));
+    JPanel infoPanel = new JPanel(new GridLayout(0, 3));
+    playPanel = new JPanel();
+    JPanel settingsPanel = new JPanel(new GridLayout(0, 2));
+    playPanel.setLayout(new WrapLayout());
+    playPanel.setBackground(Color.DARK_GRAY);
 
-    settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.X_AXIS));
-    JPanel leftSettingsPanel = new JPanel();
-    JPanel rightSettingsPanel = new JPanel();
+    leftSettingsPanel = new JPanel(new GridLayout(0, 1));
+    JPanel rightSettingsPanel = new JPanel(new GridLayout(0, 1));
+
     settingsPanel.add(leftSettingsPanel);
     settingsPanel.add(rightSettingsPanel);
     leftSettingsPanel.setLayout(
@@ -67,7 +88,10 @@ public class MainApp extends JFrame {
     add(settingsPanel);
 
     JLabel mainTitle = new JLabel("SIMON BEAT");
+    mainTitle.setHorizontalAlignment(JLabel.CENTER);
     mainTitle.setFont(new Font(FONT_NAME, Font.PLAIN, MAINTITLE_FONT_SIZE));
+    mainTitle.setForeground(Color.GRAY);
+    titlePanel.setBackground(Color.darkGray);
     titlePanel.add(mainTitle);
 
     LevelLabel level = new LevelLabel("Level: ");
@@ -79,21 +103,151 @@ public class MainApp extends JFrame {
     playButton.setPreferredSize(
       new Dimension(LEVEL_FONT_SIZE * 3, LEVEL_FONT_SIZE)
     );
+
+    game.subscribeToLevel(playButton);
+    infoPanel.add(playButton);
+
+    ScoreLabel score = new ScoreLabel();
+    score.setFont(new Font(FONT_NAME, Font.PLAIN, LEVEL_FONT_SIZE));
+    score.setHorizontalAlignment(JLabel.RIGHT);
+    infoPanel.add(score);
+    game.subscribeToScore(score);
+
+    Synth synth = Synth.getInstance();
+    putButtons();
+
+    soundBankSelector = new ObserverComboBox();
+    game.subscribeToLevel(soundBankSelector);
+    for (SoundBank soundBank : synth.getSoundBanks()) {
+      soundBankSelector.addItem(soundBank);
+    }
+    soundBankSelector.addActionListener(
+      new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          ObserverComboBox selector = (ObserverComboBox) e.getSource();
+          SoundBank selected = (SoundBank) selector.getSelectedItem();
+          if (selected.getCode() != Synth.getInstance().getSelectedCode()) {
+            Synth.getInstance().loadSoundBank(selected.getCode());
+            putButtons();
+            putCheckBoxes();
+            pack();
+          }
+        }
+      }
+    );
+
+    JLabel selectorTitle = new JLabel("Available Sound Banks");
+    selectorTitle.setFont(new Font(FONT_NAME, Font.BOLD, LEVEL_FONT_SIZE / 2));
+    leftSettingsPanel.add(selectorTitle);
+    leftSettingsPanel.add(soundBankSelector);
+    JButton addSoundBank = new JButton("Add SoundBank");
+    addSoundBank.addActionListener(
+      new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent arg0) {
+          JFileChooser fc = new JFileChooser();
+          fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+          int returnVal = fc.showOpenDialog(MainApp.this);
+
+          if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+            int newCode = synth.readSoundBank(file.toString());
+            if (newCode != -1) {
+              soundBankSelector.addItem(
+                Synth.getInstance().getSoundBankFromCode(newCode)
+              );
+            } else {
+              showMessageDialog(
+                null,
+                "There was an error adding the selected soundbank"
+              );
+            }
+          } else {
+            System.out.println("Open command cancelled by user.");
+          }
+        }
+      }
+    );
+    leftSettingsPanel.add(addSoundBank);
+    JLabel soundsTitle = new JLabel("Available Samples");
+    soundsTitle.setFont(new Font(FONT_NAME, Font.BOLD, LEVEL_FONT_SIZE / 2));
+    leftSettingsPanel.add(soundsTitle);
+
+    putCheckBoxes();
+
+    JLabel bpmTitle = new JLabel("Tempo settings");
+    bpmTitle.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+    bpmTitle.setFont(new Font(FONT_NAME, Font.BOLD, LEVEL_FONT_SIZE / 2));
+    JLabel bpmIndication = new JLabel(
+      String.valueOf(beatManager.getBpm() + " BPM"),
+      SwingConstants.CENTER
+    );
+    bpmIndication.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+    bpmIndication.setFont(new Font(FONT_NAME, Font.PLAIN, LEVEL_FONT_SIZE / 2));
+    ObserverSlider bpmSelector = new ObserverSlider(
+      20,
+      200,
+      beatManager.getBpm()
+    );
+    game.subscribeToLevel(bpmSelector);
+    bpmSelector.addChangeListener(
+      new ChangeListener() {
+        @Override
+        public void stateChanged(ChangeEvent e) {
+          JSlider source = (JSlider) (e.getSource());
+          bpmIndication.setText(source.getValue() + " BPM");
+          if (!source.getValueIsAdjusting()) {
+            beatManager.setBpm(source.getValue());
+          }
+        }
+      }
+    );
+    rightSettingsPanel.add(bpmTitle);
+    rightSettingsPanel.add(bpmSelector);
+    rightSettingsPanel.add(bpmIndication);
+
     playButton.addActionListener(
       new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
           if (playButton.isButtonShowingPlay()) {
             // START GAME
-            bm.playSequence(game.getLevel() + 1, enabledSamples());
+            for (InstrumentButton ib : buttons.values()) {
+              ib.setEnabled(true);
+            }
+            bpmSelector.setEnabled(false);
+            for (ObserverCheckBox jCheckBox : checkBoxes) {
+              jCheckBox.setEnabled(false);
+            }
+            beatManager.playSequence(game.getLevel() + 1, enabledSamples());
+            playButton.setPlayMode(false);
+            soundBankSelector.setEnabled(false);
           } else {
             game.gameOver();
+            bpmSelector.setEnabled(true);
           }
         }
       }
     );
-    game.subscribeToLevel(playButton);
-    infoPanel.add(playButton);
+
+    game.subscribeToLevel(synth);
+    game.subscribeToLevel(beatManager);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    pack();
+    setVisible(true);
+  }
+
+  public void putButtons() {
+    //Remove old buttons, then put new ones
+    for (Integer key : buttons.keySet()) {
+      InstrumentButton button = buttons.get(key);
+      playPanel.remove(button);
+      beatManager.unSubscribe(key);
+      beatManager.unSubscribeToLevelStart(button);
+      game.unSubscribeToLevel(button);
+    }
+    buttons = new HashMap<Integer, InstrumentButton>();
 
     Synth synth = Synth.getInstance();
     List<RichSample> samples = synth.getSamples();
@@ -104,17 +258,29 @@ public class MainApp extends JFrame {
         () -> {
           RichSample sample = samples.get(sampleNum);
           synth.queueSample(sample);
-          bm.addToUserSequence(sample);
+          beatManager.addToUserSequence(sample);
         },
         samples.get(i).getCode()
       );
       playPanel.add(button);
       buttons.put(samples.get(i).getCode(), button);
-      bm.subscribe(button, samples.get(i).getCode());
+      beatManager.subscribe(button, samples.get(i).getCode());
+      beatManager.subscribeToLevelStart(button);
+      game.subscribeToLevel(button);
+      playPanel.revalidate();
     }
+  }
 
-    for (RichSample sample : samples) {
-      JCheckBox checkBox = new JCheckBox(sample.getName(), true);
+  public void putCheckBoxes() {
+    for (ObserverCheckBox checkBox : checkBoxes) {
+      leftSettingsPanel.remove(checkBox);
+      game.unSubscribeToLevel(checkBox);
+    }
+    Synth synth = Synth.getInstance();
+    for (RichSample sample : synth.getSamples()) {
+      ObserverCheckBox checkBox = new ObserverCheckBox(sample.getName(), true);
+      checkBoxes.add(checkBox);
+      game.subscribeToLevel(checkBox);
       leftSettingsPanel.add(checkBox);
       checkBox.addActionListener(
         new ActionListener() {
@@ -126,29 +292,7 @@ public class MainApp extends JFrame {
         }
       );
     }
-
-    JLabel bpmIndication = new JLabel(String.valueOf(bm.getBpm()));
-    JSlider bpmSelector = new JSlider(20, 500, bm.getBpm());
-    bpmSelector.addChangeListener(
-      new ChangeListener() {
-        @Override
-        public void stateChanged(ChangeEvent e) {
-          JSlider source = (JSlider) (e.getSource());
-          bpmIndication.setText(source.getValue() + " BPM");
-          if (!source.getValueIsAdjusting()) {
-            bm.setBpm(source.getValue());
-          }
-        }
-      }
-    );
-    rightSettingsPanel.add(bpmSelector);
-    rightSettingsPanel.add(bpmIndication);
-
-    game.subscribeToLevel(synth);
-    game.subscribeToLevel(bm);
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    pack();
-    setVisible(true);
+    leftSettingsPanel.revalidate();
   }
 
   public List<RichSample> enabledSamples() {
@@ -163,5 +307,11 @@ public class MainApp extends JFrame {
 
   public static void main(String[] args) {
     MainApp app = new MainApp("Simon Beat");
+  }
+
+  @Override
+  public void notify(int score) {
+    // TODO Auto-generated method stub
+
   }
 }
