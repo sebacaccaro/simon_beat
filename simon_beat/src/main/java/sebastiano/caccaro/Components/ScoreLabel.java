@@ -2,7 +2,7 @@ package sebastiano.caccaro.Components;
 
 import javax.swing.JLabel;
 
-public class ScoreLabel extends JLabel implements GameListener {
+public class ScoreLabel extends JLabel implements GameSubscriber {
 
   /**
    *

@@ -2,7 +2,7 @@ package sebastiano.caccaro.Components;
 
 import javax.swing.JSlider;
 
-public class ObserverSlider extends JSlider implements GameListener {
+public class ObserverSlider extends JSlider implements GameSubscriber {
 
   /**
    *

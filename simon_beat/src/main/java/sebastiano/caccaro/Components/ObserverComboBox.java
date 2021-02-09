@@ -5,7 +5,7 @@ import sebastiano.caccaro.SoundSythesis.SoundBank;
 
 public class ObserverComboBox
   extends JComboBox<SoundBank>
-  implements GameListener {
+  implements GameSubscriber {
 
   /**
    *

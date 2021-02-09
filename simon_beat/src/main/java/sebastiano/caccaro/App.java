@@ -3,7 +3,6 @@ package sebastiano.caccaro;
 import static javax.swing.JOptionPane.showMessageDialog;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -17,10 +16,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import javax.swing.BoxLayout;
-import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -29,7 +26,7 @@ import javax.swing.JSlider;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import sebastiano.caccaro.Components.GameListener;
+import sebastiano.caccaro.Components.GameSubscriber;
 import sebastiano.caccaro.Components.InstrumentButton;
 import sebastiano.caccaro.Components.LevelLabel;
 import sebastiano.caccaro.Components.ObserverCheckBox;
@@ -43,8 +40,12 @@ import sebastiano.caccaro.SoundSythesis.RichSample;
 import sebastiano.caccaro.SoundSythesis.SoundBank;
 import sebastiano.caccaro.SoundSythesis.Synth;
 
-public class MainApp extends JFrame implements GameListener {
+public class App extends JFrame implements GameSubscriber {
 
+  /**
+   *
+   */
+  private static final long serialVersionUID = 5097313321957638415L;
   static final int MAINTITLE_FONT_SIZE = 120;
   static final int LEVEL_FONT_SIZE = 40;
   static final String FONT_NAME = "Sans-Serif";
@@ -61,7 +62,7 @@ public class MainApp extends JFrame implements GameListener {
   private JPanel leftSettingsPanel;
   private ObserverComboBox soundBankSelector;
 
-  public MainApp(String windowTitle) {
+  public App(String windowTitle) {
     super(windowTitle);
     beatManager.subscribeToResults(game);
     setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
@@ -148,7 +149,7 @@ public class MainApp extends JFrame implements GameListener {
         public void actionPerformed(ActionEvent arg0) {
           JFileChooser fc = new JFileChooser();
           fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-          int returnVal = fc.showOpenDialog(MainApp.this);
+          int returnVal = fc.showOpenDialog(App.this);
 
           if (returnVal == JFileChooser.APPROVE_OPTION) {
             File file = fc.getSelectedFile();
@@ -306,7 +307,7 @@ public class MainApp extends JFrame implements GameListener {
   }
 
   public static void main(String[] args) {
-    MainApp app = new MainApp("Simon Beat");
+    App app = new App("Simon Beat");
   }
 
   @Override

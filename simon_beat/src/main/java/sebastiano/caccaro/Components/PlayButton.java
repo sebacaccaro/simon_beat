@@ -2,7 +2,7 @@ package sebastiano.caccaro.Components;
 
 import javax.swing.JButton;
 
-public class PlayButton extends JButton implements GameListener {
+public class PlayButton extends JButton implements GameSubscriber {
 
   /**
    *

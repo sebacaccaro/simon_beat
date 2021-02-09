@@ -2,7 +2,7 @@ package sebastiano.caccaro.Components;
 
 import javax.swing.JCheckBox;
 
-public class ObserverCheckBox extends JCheckBox implements GameListener {
+public class ObserverCheckBox extends JCheckBox implements GameSubscriber {
 
   /**
    *

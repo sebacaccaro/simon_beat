@@ -7,13 +7,14 @@ import com.jsyn.unitgen.VariableRateDataReader;
 import com.jsyn.unitgen.VariableRateMonoReader;
 import com.jsyn.unitgen.VariableRateStereoReader;
 import java.io.File;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import sebastiano.caccaro.Components.GameListener;
+import sebastiano.caccaro.Components.GameSubscriber;
 
-public class Synth implements GameListener {
+public class Synth implements GameSubscriber {
 
   private static final Synth INSTANCE = new Synth();
   private static final String SAMPLES_DIR = "src/main/resources/samples/";

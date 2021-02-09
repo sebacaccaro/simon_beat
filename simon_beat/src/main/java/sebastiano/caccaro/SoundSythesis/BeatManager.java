@@ -9,12 +9,12 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import sebastiano.caccaro.Components.GameListener;
-import sebastiano.caccaro.Components.LevelStartListener;
+import sebastiano.caccaro.Components.GameSubscriber;
+import sebastiano.caccaro.Components.LevelStartSubscriber;
 import sebastiano.caccaro.GameResult;
 import sebastiano.caccaro.ResultsSubscriber;
 
-public class BeatManager implements GameListener {
+public class BeatManager implements GameSubscriber {
 
   private static final int STANDARD_BPM = 60;
   private static final int SECONDS_IN_A_MINUTE = 60;
@@ -27,7 +27,7 @@ public class BeatManager implements GameListener {
   private Map<Integer, SampleSubscriber> subscribers = new HashMap<Integer, SampleSubscriber>();
   private List<ResultsSubscriber> resultsSubscribers = new LinkedList<ResultsSubscriber>();
   private List<RichSample> cached_samples;
-  private List<LevelStartListener> levelStartListeners = new LinkedList<LevelStartListener>();
+  private List<LevelStartSubscriber> levelStartListeners = new LinkedList<LevelStartSubscriber>();
   private ScheduledExecutorService nextLevelSequence = null;
   private List<ScheduledExecutorService> nextSamples = new LinkedList<ScheduledExecutorService>();
 
@@ -90,11 +90,11 @@ public class BeatManager implements GameListener {
     subscribers.remove(code);
   }
 
-  public void subscribeToLevelStart(LevelStartListener lsl) {
+  public void subscribeToLevelStart(LevelStartSubscriber lsl) {
     levelStartListeners.add(lsl);
   }
 
-  public void unSubscribeToLevelStart(LevelStartListener lsl) {
+  public void unSubscribeToLevelStart(LevelStartSubscriber lsl) {
     levelStartListeners.remove(lsl);
   }
 
@@ -108,7 +108,7 @@ public class BeatManager implements GameListener {
     lastSequence = new LinkedList<TimedSoundRecord>();
     clearUserSequence();
 
-    for (LevelStartListener levelStartListener : levelStartListeners) {
+    for (LevelStartSubscriber levelStartListener : levelStartListeners) {
       levelStartListener.notifyLevelStart(beatNumber * singeBeatInterval());
     }
     for (int i = 0; i < beatNumber; i++) {

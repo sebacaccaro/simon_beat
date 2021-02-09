@@ -16,7 +16,7 @@ import sebastiano.caccaro.SoundSythesis.SampleSubscriber;
 
 public class InstrumentButton
   extends JButton
-  implements SampleSubscriber, GameListener, LevelStartListener {
+  implements SampleSubscriber, GameSubscriber, LevelStartSubscriber {
 
   /**
    *
@@ -93,12 +93,14 @@ public class InstrumentButton
 
   public void flashFor(int milliSeconds) {
     setBackground(baseColor.brighter().brighter());
-    paintImmediately(getBounds());
+    // Not revalidating right away will cause buttons to have
+    // misstimed firing
+    revalidate();
     ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     executorService.schedule(
       () -> {
+        revalidate();
         setBackground(getBaseColor());
-        paintImmediately(getBounds());
       },
       milliSeconds,
       TimeUnit.MILLISECONDS

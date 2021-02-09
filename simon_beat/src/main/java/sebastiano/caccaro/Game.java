@@ -2,7 +2,7 @@ package sebastiano.caccaro;
 
 import java.util.LinkedList;
 import java.util.List;
-import sebastiano.caccaro.Components.GameListener;
+import sebastiano.caccaro.Components.GameSubscriber;
 import sebastiano.caccaro.SoundSythesis.TimedSoundRecord;
 
 public class Game implements ResultsSubscriber {
@@ -10,17 +10,17 @@ public class Game implements ResultsSubscriber {
   private int level;
   private int score;
 
-  private List<GameListener> levelListeners = new LinkedList<GameListener>();
-  private List<GameListener> scoreListeners = new LinkedList<GameListener>();
+  private List<GameSubscriber> levelListeners = new LinkedList<GameSubscriber>();
+  private List<GameSubscriber> scoreListeners = new LinkedList<GameSubscriber>();
   private int sequenceCounter;
 
   public Game() {
     reset();
   }
 
-  private void notifyAll(List<GameListener> gameListeners) {
+  private void notifyAll(List<GameSubscriber> gameListeners) {
     int value = gameListeners == levelListeners ? level : score;
-    for (GameListener gameListener : gameListeners) {
+    for (GameSubscriber gameListener : gameListeners) {
       gameListener.notify(value);
     }
   }
@@ -47,20 +47,20 @@ public class Game implements ResultsSubscriber {
     sequenceCounter = 0;
   }
 
-  public void subscribeToLevel(GameListener gl) {
+  public void subscribeToLevel(GameSubscriber gl) {
     levelListeners.add(gl);
     gl.notify(level);
   }
 
-  public void unSubscribeToLevel(GameListener gl) {
+  public void unSubscribeToLevel(GameSubscriber gl) {
     levelListeners.remove(gl);
   }
 
-  public void unSubscribeToScore(GameListener gl) {
+  public void unSubscribeToScore(GameSubscriber gl) {
     scoreListeners.remove(gl);
   }
 
-  public void subscribeToScore(GameListener gl) {
+  public void subscribeToScore(GameSubscriber gl) {
     scoreListeners.add(gl);
     gl.notify(score);
   }
